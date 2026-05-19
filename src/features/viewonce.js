@@ -1,9 +1,29 @@
-export async function viewOnce(client, msg, from) {
-  const type = Object.keys(msg.message)[0];
-  if (type === 'viewOnceMessage' || type === 'viewOnceMessageV2') {
-    console.log(`[VIEWONCE] Detected view-once message from ${from}`);
-    // Logic: Resend the media to the bot owner or back to the chat
-    // const media = msg.message[type].message;
-    // await client.sendMessage(config.OWNER_NUMBER + '@s.whatsapp.net', { ...media });
+import { downloadContentFromMessage } from "@whiskeysockets/baileys";
+import config from "../../config.js";
+
+export async function handleViewOnce(sock, msg, botState) {
+  if (!botState.antiViewOnce) return;
+  const voMsg = msg.message?.viewOnceMessage?.message || msg.message?.viewOnceMessageV2?.message;
+  if (!voMsg) return;
+  const voImage = voMsg.imageMessage;
+  const voVideo = voMsg.videoMessage;
+  const voAudio = voMsg.audioMessage;
+  const media = voImage || voVideo || voAudio;
+  if (!media) return;
+
+  const ownerJid = `${config.OWNER_NUMBER}@s.whatsapp.net`;
+  const sender = msg.key.participant || msg.key.remoteJid;
+  try {
+    const type = voImage ? "image" : voVideo ? "video" : "audio";
+    const stream = await downloadContentFromMessage(media, type);
+    const chunks = [];
+    for await (const c of stream) chunks.push(c);
+    const buffer = Buffer.concat(chunks);
+    const caption = `👁️ *View-Once captured*\nFrom: @${sender.split("@")[0]}`;
+    if (type === "image") await sock.sendMessage(ownerJid, { image: buffer, caption });
+    else if (type === "video") await sock.sendMessage(ownerJid, { video: buffer, caption });
+    else await sock.sendMessage(ownerJid, { audio: buffer, mimetype: "audio/mp4" });
+  } catch (err) {
+    console.error("[VIEWONCE]", err.message);
   }
 }

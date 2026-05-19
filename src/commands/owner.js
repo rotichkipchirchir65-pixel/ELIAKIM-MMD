@@ -1,16 +1,8 @@
-import config from '../../config.js';
-
-export async function owner(client, msg, from, args) {
-  const vcard = 'BEGIN:VCARD\n' 
-                + 'VERSION:3.0\n' 
-                + `FN:${config.BOT_NAME} Owner\n` 
-                + `TEL;type=CELL;type=VOICE;waid=${config.OWNER_NUMBER}:+${config.OWNER_NUMBER}\n` 
-                + 'END:VCARD';
-
-  await client.sendMessage(from, { 
-    contacts: { 
-      displayName: 'Owner', 
-      contacts: [{ vcard }] 
-    }
-  }, { quoted: msg });
+import config from "../../config.js";
+export async function ownerCmd(sock, msg, { jid }) {
+  const ownerJid = `${config.OWNER_NUMBER}@s.whatsapp.net`;
+  await sock.sendMessage(jid, {
+    text: `👑 *BOT OWNER*\n\n📱 +${config.OWNER_NUMBER}`,
+    mentions: [ownerJid],
+  });
 }

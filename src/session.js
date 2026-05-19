@@ -1,28 +1,69 @@
-import fs from 'fs-extra';
-import path from 'path';
-import zlib from 'zlib';
-import config from '../config.js';
+import fs from "fs";
+import zlib from "zlib";
+import path from "path";
+import { fileURLToPath } from "url";
+import config from "../config.js";
 
-const sessionPath = './session';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SESSION_DIR = path.join(__dirname, "..", "bot-session");
 
-export async function restoreSession() {
-  if (!config.SESSION_ID) return;
+export function loadSession() {
+  let raw = config.SESSION_ID?.trim();
+
+  if (!raw || raw === "PASTE_YOUR_SESSION_ID_HERE") {
+    console.log("❌ SESSION ID NOT SET IN config.js");
+    process.exit(1);
+  }
+
+  if (!fs.existsSync(SESSION_DIR)) {
+    fs.mkdirSync(SESSION_DIR, { recursive: true });
+  }
 
   try {
-    if (!fs.existsSync(sessionPath)) {
-      fs.mkdirSync(sessionPath);
+    // ── Strip known prefixes (KnightBot!, Baileys-, etc.) ──────────────────
+    const prefixMatch = raw.match(/^[A-Za-z]+[!_-]/);
+    if (prefixMatch) {
+      raw = raw.slice(prefixMatch[0].length);
+      console.log(`✅ Detected session prefix: ${prefixMatch[0]} — stripped.`);
     }
 
-    const sessionData = config.SESSION_ID.split('KnightBot!')[1];
-    if (!sessionData) return;
+    // ── Decode base64 ──────────────────────────────────────────────────────
+    const buf = Buffer.from(raw, "base64");
 
-    const buffer = Buffer.from(sessionData, 'base64');
-    const decompressed = zlib.gunzipSync(buffer);
-    const json = JSON.parse(decompressed.toString());
+    // ── Try gzip decompress first (KnightBot uses gzip) ───────────────────
+    let jsonStr;
+    try {
+      jsonStr = zlib.gunzipSync(buf).toString("utf8");
+    } catch {
+      // Not gzipped — use raw buffer as UTF-8
+      jsonStr = buf.toString("utf8");
+    }
 
-    await fs.writeJSON(path.join(sessionPath, 'creds.json'), json);
-    console.log('Session restored from SESSION_ID');
-  } catch (error) {
-    console.error('Failed to restore session:', error);
+    const decoded = JSON.parse(jsonStr);
+
+    // ── Write session files ────────────────────────────────────────────────
+    if (typeof decoded === "object" && decoded !== null) {
+      if (!decoded.noiseKey) {
+        // It's a map of filename → content
+        for (const [name, content] of Object.entries(decoded)) {
+          const data = typeof content === "string" ? content : JSON.stringify(content);
+          fs.writeFileSync(path.join(SESSION_DIR, name), data, "utf8");
+        }
+      } else {
+        // It's a raw creds.json object
+        fs.writeFileSync(
+          path.join(SESSION_DIR, "creds.json"),
+          JSON.stringify(decoded, null, 2),
+          "utf8"
+        );
+      }
+    }
+
+    console.log("✅ Session loaded successfully.");
+
+  } catch (err) {
+    console.error("❌ Failed to decode SESSION_ID:", err.message);
+    console.error("   Check that you pasted the full session string in config.js");
+    process.exit(1);
   }
 }

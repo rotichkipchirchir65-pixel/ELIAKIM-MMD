@@ -1,37 +1,74 @@
-import config from '../config.js';
-import { commands } from './commands/index.js';
-import { antiLink } from './features/antilink.js';
-import { viewOnce } from './features/viewonce.js';
+import config from "../config.js";
+import { antilinkCheck } from "./features/antilink.js";
+import { antiStatusMentionCheck } from "./features/antistatusmention.js";
+import { handleViewOnce } from "./features/viewonce.js";
+import { handleCommand } from "./commands/index.js";
 
-export async function handleMessages(client, m) {
-  try {
-    const msg = m.messages[0];
-    if (!msg.message) return;
-    if (msg.key.fromMe) return;
+export const botState = {
+  alwaysTyping: false,
+  privateMode: false,
+  antilinkGroups: new Set(),
+  antiStatusMention: new Set(),
+  antiViewOnce: false,
+  blockedUsers: new Set(),
+};
 
-    const from = msg.key.remoteJid;
-    
-    // Process Features
-    await antiLink(client, msg, from);
-    await viewOnce(client, msg, from);
-    
-    // Command parsing
-    const type = Object.keys(msg.message)[0];
-    const body = type === 'conversation' ? msg.message.conversation : 
-                 type === 'extendedTextMessage' ? msg.message.extendedTextMessage.text : 
-                 type === 'imageMessage' ? msg.message.imageMessage.caption : 
-                 type === 'videoMessage' ? msg.message.videoMessage.caption : '';
+export function getSender(msg) {
+  return msg.key.participant || msg.key.remoteJid;
+}
 
-    const isCmd = body.startsWith(config.PREFIX);
-    const command = isCmd ? body.slice(config.PREFIX.length).trim().split(' ')[0].toLowerCase() : null;
-    const args = isCmd ? body.trim().split(' ').slice(1) : [];
+export function isOwner(msg) {
+  // fromMe = message sent by the bot's own number (owner messaging themselves)
+  if (msg.key.fromMe) return true;
 
-    if (isCmd && commands[command]) {
-      console.log(`[CMD] ${command} from ${from}`);
-      await commands[command](client, msg, from, args);
-    }
+  // Also check if sender number matches OWNER_NUMBER
+  const sender = getSender(msg).replace(/\D/g, "");
+  const owner = config.OWNER_NUMBER.replace(/\D/g, "");
+  return sender === owner || sender.endsWith(owner) || owner.endsWith(sender);
+}
 
-  } catch (error) {
-    console.error('Error handling message:', error);
+export function isGroup(msg) {
+  return msg.key.remoteJid.endsWith("@g.us");
+}
+
+export function getBody(msg) {
+  return (
+    msg.message?.conversation ||
+    msg.message?.extendedTextMessage?.text ||
+    msg.message?.imageMessage?.caption ||
+    msg.message?.videoMessage?.caption ||
+    ""
+  );
+}
+
+export async function handleMessage(sock, msg) {
+  const jid = msg.key.remoteJid;
+  if (jid === "status@broadcast") return;
+
+  const sender = getSender(msg);
+  const body = getBody(msg);
+  const owner = isOwner(msg);
+  const inGroup = isGroup(msg);
+
+  if (botState.blockedUsers.has(sender)) return;
+  if (botState.privateMode && !inGroup && !owner) return;
+
+  if (botState.alwaysTyping) {
+    await sock.sendPresenceUpdate("composing", jid).catch(() => {});
   }
+
+  if (inGroup) {
+    const blocked = await antilinkCheck(sock, msg, botState);
+    if (blocked) return;
+    await antiStatusMentionCheck(sock, msg, botState);
+  }
+
+  await handleViewOnce(sock, msg, botState);
+
+  if (!body.startsWith(config.PREFIX)) return;
+
+  const args = body.slice(config.PREFIX.length).trim().split(/\s+/);
+  const command = args.shift().toLowerCase();
+
+  await handleCommand(sock, msg, { command, args, jid, sender, owner, inGroup, body });
 }

@@ -1,6 +1,5 @@
-import { makeInMemoryStore } from '@whiskeysockets/baileys';
-import pino from 'pino';
-
-const store = makeInMemoryStore({ logger: pino().child({ level: 'silent', stream: 'store' }) });
-
-export default store;
+let _store = null;
+export const store = {
+  set: (s) => { _store = s; },
+  get: () => _store
+};

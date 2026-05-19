@@ -1,19 +1,37 @@
-import config from '../../config.js';
+import config from "../../config.js";
+const P = config.PREFIX;
 
-export async function help(client, msg, from, args) {
-  const menuText = `
-🌟 *${config.BOT_NAME}* 🌟
+export async function helpCmd(sock, msg, { jid }) {
+  await sock.sendMessage(jid, {
+    text:
+`╔══════════════════════╗
+║  ⚡ *${config.BOT_NAME} — MENU*  ║
+╚══════════════════════╝
 
-*Prefix:* [ ${config.PREFIX} ]
+🛠 *UTILITY*
+▸ ${P}ping — Bot speed test
+▸ ${P}menu — This menu
+▸ ${P}owner — Owner info
 
-*Commands:*
-- .ping : Check bot latency
-- .help : Show this menu
-- .owner : Get owner contact
-- .yt : Download YouTube videos (Coming soon)
+👑 *OWNER ONLY*
+▸ ${P}block @user — Block user
+▸ ${P}unblock @user — Unblock user
+▸ ${P}private on/off — DMs for owner only
+▸ ${P}alwaystyping on/off — Always appear typing
 
-_Powered by ELIAKIM MD_
-  `.trim();
+👥 *GROUP MANAGEMENT*
+▸ ${P}antilink on/off — Delete links (3 strikes = kick)
+▸ ${P}antistatusmention on/off — Delete status forwards
+▸ ${P}antiviewonce on/off — Auto-save view-once to owner
 
-  await client.sendMessage(from, { text: menuText }, { quoted: msg });
+👁️ *VIEW-ONCE*
+▸ ${P}dlviewonce — Reply to view-once to save it
+
+📥 *DOWNLOADS*
+▸ ${P}yt <url> — YouTube → MP3
+▸ ${P}ytmp4 <url> — YouTube → MP4 (max 10min)
+
+━━━━━━━━━━━━━━━━━━━━━━
+_Powered by ${config.BOT_NAME}_`
+  });
 }

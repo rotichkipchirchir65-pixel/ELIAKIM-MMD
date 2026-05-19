@@ -1,6 +1,5 @@
-export async function ping(client, msg, from, args) {
-  const start = Date.now();
-  await client.sendMessage(from, { text: 'Pinging...' }, { quoted: msg });
-  const latency = Date.now() - start;
-  await client.sendMessage(from, { text: `Pong! 🏓\nLatency: ${latency}ms` }, { quoted: msg });
+export async function pingCmd(sock, msg, { jid }) {
+  const t = Date.now();
+  await sock.sendMessage(jid, { text: "🏓 Pong!" });
+  await sock.sendMessage(jid, { text: `⚡ *${Date.now() - t}ms*` });
 }

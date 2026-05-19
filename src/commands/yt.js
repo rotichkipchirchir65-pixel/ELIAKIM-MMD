@@ -1,14 +1,44 @@
-import axios from 'axios';
+import ytdl from "@distube/ytdl-core";
 
-export async function yt(client, msg, from, args) {
-  if (!args[0]) return client.sendMessage(from, { text: 'Please provide a YouTube URL' }, { quoted: msg });
-
-  await client.sendMessage(from, { text: 'Searching and downloading... Please wait.' }, { quoted: msg });
-  
+export async function ytCmd(sock, msg, { jid, args, command }) {
+  const url = args[0];
+  if (!url || !/youtu/.test(url)) {
+    return sock.sendMessage(jid, { text: `❌ Provide a YouTube URL.\n.yt <url> — audio\n.ytmp4 <url> — video` });
+  }
+  const isVideo = command === "ytmp4";
+  await sock.sendMessage(jid, { text: `⏳ Downloading ${isVideo ? "video" : "audio"}...` });
   try {
-    // This is a placeholder. In a real app, you'd use a YouTube DL API or library.
-    await client.sendMessage(from, { text: "YT Download feature is being configured with your API keys." }, { quoted: msg });
+    const info = await ytdl.getInfo(url);
+    const title = info.videoDetails.title;
+    if (parseInt(info.videoDetails.lengthSeconds) > 600)
+      return sock.sendMessage(jid, { text: "❌ Max 10 minutes allowed." });
+
+    const chunks = [];
+    let total = 0;
+    const stream = isVideo
+      ? ytdl(url, { quality: "highestvideo", filter: "audioandvideo" })
+      : ytdl(url, { quality: "lowestaudio", filter: "audioonly" });
+
+    stream.on("data", (c) => { 
+      total += c.length; 
+      chunks.push(c); 
+      if (total > 50e6) stream.destroy(new Error("Too large")); 
+    });
+    
+    await new Promise((res, rej) => { 
+      stream.on("end", res); 
+      stream.on("error", rej); 
+    });
+    
+    const buffer = Buffer.concat(chunks);
+
+    if (isVideo) {
+      await sock.sendMessage(jid, { video: buffer, caption: `🎬 *${title}*` }, { quoted: msg });
+    } else { 
+      await sock.sendMessage(jid, { audio: buffer, mimetype: "audio/mp4" }, { quoted: msg }); 
+      await sock.sendMessage(jid, { text: `🎵 *${title}*` }); 
+    }
   } catch (err) {
-    await client.sendMessage(from, { text: 'Error downloading video.' }, { quoted: msg });
+    await sock.sendMessage(jid, { text: `❌ ${err.message.includes("large") ? "File too large (max 50MB)." : err.message}` });
   }
 }

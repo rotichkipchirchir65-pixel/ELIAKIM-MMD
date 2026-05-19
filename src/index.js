@@ -1,51 +1,125 @@
-import { makeWASocket, useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
-import pino from 'pino';
-import { restoreSession } from './session.js';
-import { handleMessages } from './handler.js';
-import config from '../config.js';
+import makeWASocket, {
+  useMultiFileAuthState,
+  fetchLatestBaileysVersion,
+  DisconnectReason,
+  proto,
+} from "@whiskeysockets/baileys";
+import { Boom } from "@hapi/boom";
+import pino from "pino";
+import path from "path";
+import { fileURLToPath } from "url";
+
+import config from "../config.js";
+import { loadSession } from "./session.js";
+import { handleMessage } from "./handler.js";
+import { store as globalStore } from "./store.js";
+import { handleAntiDelete } from "./features/antidelete.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SESSION_DIR = path.join(__dirname, "..", "bot-session");
+const logger = pino({ level: "silent" });
+
+// Load session from config.js before connecting
+loadSession();
 
 export async function startBot() {
-  await restoreSession();
+  const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
+  const { version } = await fetchLatestBaileysVersion();
 
-  const { state, saveCreds } = await useMultiFileAuthState('session');
-
-  const client = makeWASocket({
-    auth: state,
-    printQRInTerminal: true,
-    logger: pino({ level: 'silent' }),
-    browser: ['Ubuntu', 'Chrome', '20.0.04']
+  // Simple message cache — stores last 1000 messages for antidelete
+  const msgCache = new Map();
+  globalStore.set({
+    loadMessage: (jid, id) => msgCache.get(`${jid}:${id}`) || null,
   });
 
-  client.ev.on('creds.update', saveCreds);
+  const sock = makeWASocket({
+    version,
+    logger,
+    printQRInTerminal: false,
+    auth: state,
+    browser: [config.BOT_NAME, "Chrome", "1.0.0"],
+    getMessage: async (key) => {
+      const cached = msgCache.get(`${key.remoteJid}:${key.id}`);
+      return cached?.message || proto.Message.fromObject({});
+    },
+  });
 
-  client.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect } = update;
-    if (connection === 'close') {
-      const statusCode = (lastDisconnect.error)?.output?.statusCode;
-      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-      
-      console.log(`Connection closed: ${lastDisconnect.error?.message || 'Unknown error'}`);
-      
-      if (statusCode === 440) {
-        console.log('Conflict detected. Waiting 10 seconds before clearing instance...');
-        setTimeout(() => startBot(), 10000);
-      } else if (shouldReconnect) {
-        setTimeout(() => startBot(), 5000);
+  // ── Cache every incoming message for antidelete ────────────────────────────
+  sock.ev.on("messages.upsert", async ({ messages, type }) => {
+    for (const msg of messages) {
+      if (msg?.key?.id && msg?.message) {
+        msgCache.set(`${msg.key.remoteJid}:${msg.key.id}`, msg);
+        // Keep cache under 1000 messages
+        if (msgCache.size > 1000) {
+          msgCache.delete(msgCache.keys().next().value);
+        }
       }
-    } else if (connection === 'open') {
-      console.log('ELIAKIM MD connected successfully');
-      const ownerId = config.OWNER_NUMBER + "@s.whatsapp.net";
+    }
+    if (type !== "notify") return;
+    for (const msg of messages) {
+      if (!msg.message) continue;
       try {
-        await client.sendMessage(ownerId, { text: "ELIAKIM MD Connected Successfully! 🚀\n\nPrefix: " + config.PREFIX });
-      } catch (e) {
-        console.error("Failed to send welcome message:", e);
+        await handleMessage(sock, msg);
+      } catch (err) {
+        console.error("[ERROR]", err.message);
       }
     }
   });
 
-  client.ev.on('messages.upsert', async (m) => {
-    await handleMessages(client, m);
+  // ── Connection events ──────────────────────────────────────────────────────
+  sock.ev.on("connection.update", async (update) => {
+    const { connection, lastDisconnect } = update;
+
+    if (connection === "open") {
+      const ownerJid = `${config.OWNER_NUMBER}@s.whatsapp.net`;
+      console.log("╔══════════════════════════════════════════╗");
+      console.log(`║  ✅  ${config.BOT_NAME} is now CONNECTED!  ║`);
+      console.log("╚══════════════════════════════════════════╝");
+      console.log(`   Owner : ${config.OWNER_NUMBER}`);
+      console.log(`   Prefix: ${config.PREFIX}`);
+      console.log(`   Time  : ${new Date().toLocaleString()}\n`);
+
+      const now = new Date().toLocaleString("en-KE", { timeZone: "Africa/Nairobi" });
+      await sock.sendMessage(ownerJid, {
+        text:
+          `╔══════════════════════╗\n` +
+          `║  ⚡ *${config.BOT_NAME}*  ║\n` +
+          `╚══════════════════════╝\n\n` +
+          `✅ *Bot is now ONLINE!*\n\n` +
+          `📱 *Number:* ${config.OWNER_NUMBER}\n` +
+          `🕐 *Time:* ${now}\n` +
+          `🔤 *Prefix:* ${config.PREFIX}\n\n` +
+          `Type *${config.PREFIX}menu* to see all commands 🚀`,
+      });
+    }
+
+    if (connection === "close") {
+      const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
+      const loggedOut = code === DisconnectReason.loggedOut;
+      console.log(`[${config.BOT_NAME}] Disconnected (code: ${code})`);
+      if (loggedOut) {
+        console.log("❌ Session expired. Update SESSION_ID in config.js and restart.");
+        process.exit(1);
+      } else {
+        console.log("🔄 Reconnecting in 5 seconds...");
+        setTimeout(startBot, 5000);
+      }
+    }
   });
 
-  return client;
+  // ── Save credentials ───────────────────────────────────────────────────────
+  sock.ev.on("creds.update", saveCreds);
+
+  // ── Anti-Delete — always on ────────────────────────────────────────────────
+  sock.ev.on("messages.delete", async (item) => {
+    try {
+      const keys = item.keys ?? [item];
+      for (const key of keys) {
+        if (!key?.id) continue;
+        await handleAntiDelete(sock, key, msgCache);
+      }
+    } catch (err) {
+      console.error("[ANTIDELETE EVENT]", err.message);
+    }
+  });
 }
