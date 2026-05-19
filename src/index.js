@@ -1,13 +1,16 @@
-import Baileys from "@whiskeysockets/baileys";
-const makeWASocket = Baileys.default || Baileys;
-const useMultiFileAuthState = Baileys.useMultiFileAuthState || Baileys.default?.useMultiFileAuthState;
-const fetchLatestBaileysVersion = Baileys.fetchLatestBaileysVersion || Baileys.default?.fetchLatestBaileysVersion;
-const DisconnectReason = Baileys.DisconnectReason || Baileys.default?.DisconnectReason;
-const proto = Baileys.proto || Baileys.default?.proto;
+import pkg from "@whiskeysockets/baileys";
+const { 
+  makeWASocket, 
+  useMultiFileAuthState, 
+  fetchLatestBaileysVersion, 
+  DisconnectReason, 
+  proto 
+} = pkg.default || pkg;
 
 import { Boom } from "@hapi/boom";
 import pino from "pino";
 import path from "path";
+import express from "express";
 
 import config from "../config.js";
 import { loadSession } from "./session.js";
@@ -142,3 +145,16 @@ export async function startBot() {
     }
   });
 }
+
+// ── Minimal Server for AI Studio Preview ─────────────────────────────────────
+const app = express();
+app.get("/", (req, res) => res.send(`${config.BOT_NAME} is active.`));
+app.listen(3000, "0.0.0.0", () => {
+  console.log("🚀 Health server running on port 3000");
+});
+
+// ── Fire up the bot ──────────────────────────────────────────────────────────
+startBot().catch(err => {
+  console.error("Critical Failure:", err);
+  process.exit(1);
+});
