@@ -11,7 +11,17 @@ commands['owner'] = owner;
 
 import { yt } from './yt.js';
 import { alwaystyping } from './alwaystyping.js';
+import { block } from './block.js';
+import { antiviewonce } from './antiviewonce.js';
+import { privateMode } from './private.js';
+import { dlviewonce } from './dlviewonce.js';
+import { antistatusmention } from './antistatusmention.js';
 
 commands['yt'] = yt;
 commands['alwaystyping'] = alwaystyping;
 commands['typing'] = alwaystyping;
+commands['block'] = block;
+commands['antiviewonce'] = antiviewonce;
+commands['private'] = privateMode;
+commands['dlviewonce'] = dlviewonce;
+commands['antistatusmention'] = antistatusmention;

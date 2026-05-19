@@ -13,18 +13,27 @@ export async function startBot() {
     auth: state,
     printQRInTerminal: true,
     logger: pino({ level: 'silent' }),
-    browser: [config.BOT_NAME, 'Safari', '3.0']
+    browser: ['Ubuntu', 'Chrome', '20.0.04']
   });
 
   client.ev.on('creds.update', saveCreds);
 
-  client.ev.on('connection.update', (update) => {
+  client.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect } = update;
     if (connection === 'close') {
-      const shouldReconnect = (lastDisconnect.error)?.output?.statusCode !== DisconnectReason.loggedOut;
-      console.log('connection closed due to ', lastDisconnect.error, ', reconnecting ', shouldReconnect);
+      const statusCode = (lastDisconnect.error)?.output?.statusCode;
+      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+      
+      console.log(`Connection closed: ${lastDisconnect.error?.message || 'Unknown error'}`);
+      console.log(`Status Code: ${statusCode}, Reconnecting: ${shouldReconnect}`);
+
       if (shouldReconnect) {
-        startBot();
+        console.log('Waiting 5 seconds before reconnecting...');
+        setTimeout(() => {
+          startBot();
+        }, 5000);
+      } else {
+        console.log('Logged out. Please delete session folder and restart with new SESSION_ID.');
       }
     } else if (connection === 'open') {
       console.log('ELIAKIM MD connected successfully');

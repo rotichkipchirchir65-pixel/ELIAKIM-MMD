@@ -1,20 +1,28 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# ELIAKIM MD — WhatsApp Bot
 
-# Run and deploy your AI Studio app
+A professional, high-performance WhatsApp bot with 24/7 GitHub Actions support.
 
-This contains everything you need to run your app locally.
+## 🚀 Deployment (Real Setup)
 
-View your app in AI Studio: https://ai.studio/apps/9bf92b9a-35d5-49c2-8c69-96e97ea0f61f
+1. **Export Code**: Export this project to your GitHub repository.
+2. **Configuration**: 
+   - Open `config.js` in the root directory.
+   - Enter your **OWNER_NUMBER** (international format).
+   - Enter your **SESSION_ID** (The encrypted string provided by the bot helper).
+   - Set your desired **BOT_NAME** and **PREFIX**.
+3. **Turn on Actions**: 
+   - Go to the **Actions** tab in your GitHub repo.
+   - Enable workflows if they are disabled.
+   - The bot will start automatically. It is configured to run on every push and has a keep-alive schedule every 6 hours.
 
-## Run Locally
+## 🛠 Commands
+- `.ping` - Check latency
+- `.menu` - Show command list
+- `.owner` - Get owner vcard
+- `.yt` - YouTube downloader (Coming soon)
+- `.typing` - Enable always-typing mode
 
-**Prerequisites:**  Node.js
+## ⚙️ Core Logic
+Everything is managed via `config.js`. No external secrets or environment variables are required for the bot to function, making it easy to fork and run.
 
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+_Built with ❤️ by ELIAKIM MD_

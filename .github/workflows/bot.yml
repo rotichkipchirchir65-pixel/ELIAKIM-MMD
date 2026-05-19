@@ -17,5 +17,7 @@ jobs:
           node-version: '18'
       - name: Install dependencies
         run: npm install
+      - name: Build App
+        run: npm run build
       - name: Start Bot
         run: npm start

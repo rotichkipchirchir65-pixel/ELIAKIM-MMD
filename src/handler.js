@@ -1,5 +1,7 @@
 import config from '../config.js';
 import { commands } from './commands/index.js';
+import { antiLink } from './features/antilink.js';
+import { viewOnce } from './features/viewonce.js';
 
 export async function handleMessages(client, m) {
   try {
@@ -8,10 +10,13 @@ export async function handleMessages(client, m) {
     if (msg.key.fromMe) return;
 
     const from = msg.key.remoteJid;
-    const type = Object.keys(msg.message)[0];
-    const content = JSON.stringify(msg.message);
+    
+    // Process Features
+    await antiLink(client, msg, from);
+    await viewOnce(client, msg, from);
     
     // Command parsing
+    const type = Object.keys(msg.message)[0];
     const body = type === 'conversation' ? msg.message.conversation : 
                  type === 'extendedTextMessage' ? msg.message.extendedTextMessage.text : 
                  type === 'imageMessage' ? msg.message.imageMessage.caption : 
