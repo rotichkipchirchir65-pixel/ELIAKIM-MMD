@@ -1,9 +1,10 @@
-import makeWASocket, {
-  useMultiFileAuthState,
-  fetchLatestBaileysVersion,
-  DisconnectReason,
-  proto,
-} from "@whiskeysockets/baileys";
+import Baileys from "@whiskeysockets/baileys";
+const makeWASocket = Baileys.default || Baileys;
+const useMultiFileAuthState = Baileys.useMultiFileAuthState || Baileys.default?.useMultiFileAuthState;
+const fetchLatestBaileysVersion = Baileys.fetchLatestBaileysVersion || Baileys.default?.fetchLatestBaileysVersion;
+const DisconnectReason = Baileys.DisconnectReason || Baileys.default?.DisconnectReason;
+const proto = Baileys.proto || Baileys.default?.proto;
+
 import { Boom } from "@hapi/boom";
 import pino from "pino";
 import path from "path";
@@ -19,6 +20,8 @@ const logger = pino({ level: "silent" });
 
 // Load session from config.js before connecting
 loadSession();
+
+let isAlreadyOnline = false;
 
 export async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
@@ -36,6 +39,12 @@ export async function startBot() {
     printQRInTerminal: false,
     auth: state,
     browser: [config.BOT_NAME, "Chrome", "1.0.0"],
+    syncFullHistory: false,
+    shouldSyncFullHistory: () => false,
+    generateHighQualityLinkPreview: true,
+    linkPreview: false,
+    maxMsgRetryCount: 15,
+    msgRetryCounterCache: new Map(),
     getMessage: async (key) => {
       const cached = msgCache.get(`${key.remoteJid}:${key.id}`);
       return cached?.message || proto.Message.fromObject({});
@@ -77,30 +86,42 @@ export async function startBot() {
       console.log(`   Prefix: ${config.PREFIX}`);
       console.log(`   Time  : ${new Date().toLocaleString()}\n`);
 
-      const now = new Date().toLocaleString("en-KE", { timeZone: "Africa/Nairobi" });
-      await sock.sendMessage(ownerJid, {
-        text:
-          `╔══════════════════════╗\n` +
-          `║  ⚡ *${config.BOT_NAME}*  ║\n` +
-          `╚══════════════════════╝\n\n` +
-          `✅ *Bot is now ONLINE!*\n\n` +
-          `📱 *Number:* ${config.OWNER_NUMBER}\n` +
-          `🕐 *Time:* ${now}\n` +
-          `🔤 *Prefix:* ${config.PREFIX}\n\n` +
-          `Type *${config.PREFIX}menu* to see all commands 🚀`,
-      });
+      if (!isAlreadyOnline) {
+        const now = new Date().toLocaleString("en-KE", { timeZone: "Africa/Nairobi" });
+        await sock.sendMessage(ownerJid, {
+          text:
+            `╔══════════════════════╗\n` +
+            `║  ⚡ *${config.BOT_NAME}*  ║\n` +
+            `╚══════════════════════╝\n\n` +
+            `✅ *Bot is now ONLINE!*\n\n` +
+            `📱 *Number:* ${config.OWNER_NUMBER}\n` +
+            `🕐 *Time:* ${now}\n` +
+            `🔤 *Prefix:* ${config.PREFIX}\n\n` +
+            `Type *${config.PREFIX}menu* to see all commands 🚀`,
+        });
+        isAlreadyOnline = true;
+      }
     }
 
     if (connection === "close") {
-      const code = new Boom(lastDisconnect?.error)?.output?.statusCode;
+      const error = lastDisconnect?.error;
+      const code = new Boom(error)?.output?.statusCode;
       const loggedOut = code === DisconnectReason.loggedOut;
-      console.log(`[${config.BOT_NAME}] Disconnected (code: ${code})`);
+      const message = error?.message || "";
+
+      console.log(`[${config.BOT_NAME}] Disconnected (code: ${code}, msg: ${message})`);
+      
+      // If the error looks like a Bad MAC or sync issue, we might want to wait longer or alert
+      const isBadMAC = message.includes("Bad MAC") || message.includes("Key used already");
+      
       if (loggedOut) {
         console.log("❌ Session expired. Update SESSION_ID in config.js and restart.");
         process.exit(1);
       } else {
-        console.log("🔄 Reconnecting in 5 seconds...");
-        setTimeout(startBot, 5000);
+        const delay = isBadMAC ? 15000 : 5000;
+        if (isBadMAC) console.log("⚠️ Sync/MAC error detected. Increased delay to 15s to let server stabilize.");
+        console.log(`🔄 Reconnecting in ${delay/1000} seconds...`);
+        setTimeout(startBot, delay);
       }
     }
   });

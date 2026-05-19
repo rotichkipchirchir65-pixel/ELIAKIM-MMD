@@ -1,4 +1,5 @@
-import { downloadContentFromMessage } from "@whiskeysockets/baileys";
+import Baileys from "@whiskeysockets/baileys";
+const { downloadContentFromMessage } = Baileys.default || Baileys;
 
 export async function downloadViewOnceCmd(sock, msg, { jid }) {
   const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;

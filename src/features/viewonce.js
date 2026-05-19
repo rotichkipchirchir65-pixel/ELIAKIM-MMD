@@ -1,4 +1,5 @@
-import { downloadContentFromMessage } from "@whiskeysockets/baileys";
+import Baileys from "@whiskeysockets/baileys";
+const { downloadContentFromMessage } = Baileys.default || Baileys;
 import config from "../../config.js";
 
 export async function handleViewOnce(sock, msg, botState) {

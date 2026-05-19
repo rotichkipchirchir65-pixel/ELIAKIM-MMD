@@ -1,4 +1,5 @@
-import { downloadContentFromMessage, getContentType } from "@whiskeysockets/baileys";
+import Baileys from "@whiskeysockets/baileys";
+const { downloadContentFromMessage, getContentType } = Baileys.default || Baileys;
 import config from "../../config.js";
 
 const ownerJid = `${config.OWNER_NUMBER}@s.whatsapp.net`;
