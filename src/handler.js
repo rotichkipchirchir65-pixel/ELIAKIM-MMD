@@ -7,24 +7,32 @@ import { handleCommand } from "./commands/index.js";
 export const botState = {
   alwaysTyping: false,
   privateMode: false,
-  antilinkGroups: new Set(),
-  antiStatusMention: new Set(),
-  antiViewOnce: false,
+  antilink: true,
+  antiStatusMention: true,
+  antiViewOnce: true,
   blockedUsers: new Set(),
 };
 
-export function getSender(msg) {
+export function getSender(msg, sock) {
+  if (msg.key.fromMe) {
+    const botId = sock?.user?.id ? sock.user.id.split(":")[0] + "@s.whatsapp.net" : msg.key.remoteJid;
+    return botId;
+  }
   return msg.key.participant || msg.key.remoteJid;
 }
 
-export function isOwner(msg) {
-  // fromMe = message sent by the bot's own number (owner messaging themselves)
-  if (msg.key.fromMe) return true;
-
-  // Also check if sender number matches OWNER_NUMBER
-  const sender = getSender(msg).replace(/\D/g, "");
+export function isOwner(msg, sock) {
+  const senderJid = getSender(msg, sock);
+  const sender = senderJid.replace(/\D/g, "");
   const owner = config.OWNER_NUMBER.replace(/\D/g, "");
-  return sender === owner || sender.endsWith(owner) || owner.endsWith(sender);
+  
+  // fromMe = message sent by the bot's own number
+  const isFromMe = !!msg.key.fromMe;
+  const isOwnerNum = sender === owner || sender.endsWith(owner) || owner.endsWith(sender);
+
+  if (isFromMe || isOwnerNum) return true;
+  
+  return false;
 }
 
 export function isGroup(msg) {
@@ -45,9 +53,9 @@ export async function handleMessage(sock, msg) {
   const jid = msg.key.remoteJid;
   if (jid === "status@broadcast") return;
 
-  const sender = getSender(msg);
+  const sender = getSender(msg, sock);
   const body = getBody(msg);
-  const owner = isOwner(msg);
+  const owner = isOwner(msg, sock);
   const inGroup = isGroup(msg);
 
   if (botState.blockedUsers.has(sender)) return;

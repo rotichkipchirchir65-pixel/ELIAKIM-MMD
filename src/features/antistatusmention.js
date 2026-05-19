@@ -1,6 +1,6 @@
 export async function antiStatusMentionCheck(sock, msg, botState) {
+  if (!botState.antiStatusMention) return;
   const jid = msg.key.remoteJid;
-  if (!botState.antiStatusMention.has(jid)) return;
   const ctx = msg.message?.extendedTextMessage?.contextInfo;
   if (ctx?.remoteJid !== "status@broadcast") return;
   const sender = msg.key.participant || msg.key.remoteJid;

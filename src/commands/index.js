@@ -9,6 +9,7 @@ import { antiStatusMentionCmd } from "./antistatusmention.js";
 import { antiViewOnceCmd }     from "./antiviewonce.js";
 import { downloadViewOnceCmd } from "./dlviewonce.js";
 import { ytCmd }               from "./yt.js";
+import { kickCmd }             from "./kick.js";
 
 const commands = {
   ping:                   pingCmd,
@@ -29,6 +30,7 @@ const commands = {
   yt:                     ytCmd,
   ytmp4:                  ytCmd,
   ytdl:                   ytCmd,
+  kick:                   kickCmd,
 };
 
 export async function handleCommand(sock, msg, ctx) {

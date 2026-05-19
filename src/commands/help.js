@@ -18,11 +18,12 @@ export async function helpCmd(sock, msg, { jid }) {
 ▸ ${P}unblock @user — Unblock user
 ▸ ${P}private on/off — DMs for owner only
 ▸ ${P}alwaystyping on/off — Always appear typing
+▸ ${P}antilink on/off — Deletes all links globally
+▸ ${P}antistatusmention on/off — Deletes status forwards
+▸ ${P}antiviewonce on/off — Auto-save view-once
 
 👥 *GROUP MANAGEMENT*
-▸ ${P}antilink on/off — Delete links (3 strikes = kick)
-▸ ${P}antistatusmention on/off — Delete status forwards
-▸ ${P}antiviewonce on/off — Auto-save view-once to owner
+▸ ${P}kick — Reply to a message to remove user (Admin only)
 
 👁️ *VIEW-ONCE*
 ▸ ${P}dlviewonce — Reply to view-once to save it

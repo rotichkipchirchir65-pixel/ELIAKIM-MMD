@@ -14,20 +14,18 @@ export async function alwaysTypingCmd(sock, msg, { jid, args, owner }) {
   await sock.sendMessage(jid, { text: `⌨️ Always Typing *${on ? "ON" : "OFF"}*` });
 }
 
-export async function antilinkCmd(sock, msg, { jid, args, owner, inGroup }) {
+export async function antilinkCmd(sock, msg, { jid, args, owner }) {
   if (!owner) return sock.sendMessage(jid, { text: "❌ Owner only." });
-  if (!inGroup) return sock.sendMessage(jid, { text: "❌ Use in a group." });
   const on = (args[0] || "").toLowerCase() === "on";
-  on ? botState.antilinkGroups.add(jid) : botState.antilinkGroups.delete(jid);
-  await sock.sendMessage(jid, { text: `🔗 Anti-Link *${on ? "ON" : "OFF"}* — 3 strikes = kick` });
+  botState.antilink = on;
+  await sock.sendMessage(jid, { text: `🔗 Anti-Link *${on ? "ON" : "OFF"}* — Global` });
 }
 
-export async function antiStatusMentionCmd(sock, msg, { jid, args, owner, inGroup }) {
+export async function antiStatusMentionCmd(sock, msg, { jid, args, owner }) {
   if (!owner) return sock.sendMessage(jid, { text: "❌ Owner only." });
-  if (!inGroup) return sock.sendMessage(jid, { text: "❌ Use in a group." });
   const on = (args[0] || "").toLowerCase() === "on";
-  on ? botState.antiStatusMention.add(jid) : botState.antiStatusMention.delete(jid);
-  await sock.sendMessage(jid, { text: `📢 Anti-Status-Mention *${on ? "ON" : "OFF"}*` });
+  botState.antiStatusMention = on;
+  await sock.sendMessage(jid, { text: `📢 Anti-Status-Mention *${on ? "ON" : "OFF"}* — Global` });
 }
 
 export async function antiViewOnceCmd(sock, msg, { jid, args, owner }) {
