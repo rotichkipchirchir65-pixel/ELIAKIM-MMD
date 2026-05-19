@@ -16,6 +16,7 @@ import { antiviewonce } from './antiviewonce.js';
 import { privateMode } from './private.js';
 import { dlviewonce } from './dlviewonce.js';
 import { antistatusmention } from './antistatusmention.js';
+import { antilink } from './antilink.js';
 
 commands['yt'] = yt;
 commands['alwaystyping'] = alwaystyping;
@@ -25,3 +26,4 @@ commands['antiviewonce'] = antiviewonce;
 commands['private'] = privateMode;
 commands['dlviewonce'] = dlviewonce;
 commands['antistatusmention'] = antistatusmention;
+commands['antilink'] = antilink;
