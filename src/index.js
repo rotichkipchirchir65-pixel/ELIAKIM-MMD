@@ -25,18 +25,21 @@ export async function startBot() {
       const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
       
       console.log(`Connection closed: ${lastDisconnect.error?.message || 'Unknown error'}`);
-      console.log(`Status Code: ${statusCode}, Reconnecting: ${shouldReconnect}`);
-
-      if (shouldReconnect) {
-        console.log('Waiting 5 seconds before reconnecting...');
-        setTimeout(() => {
-          startBot();
-        }, 5000);
-      } else {
-        console.log('Logged out. Please delete session folder and restart with new SESSION_ID.');
+      
+      if (statusCode === 440) {
+        console.log('Conflict detected. Waiting 10 seconds before clearing instance...');
+        setTimeout(() => startBot(), 10000);
+      } else if (shouldReconnect) {
+        setTimeout(() => startBot(), 5000);
       }
     } else if (connection === 'open') {
       console.log('ELIAKIM MD connected successfully');
+      const ownerId = config.OWNER_NUMBER + "@s.whatsapp.net";
+      try {
+        await client.sendMessage(ownerId, { text: "ELIAKIM MD Connected Successfully! 🚀\n\nPrefix: " + config.PREFIX });
+      } catch (e) {
+        console.error("Failed to send welcome message:", e);
+      }
     }
   });
 
