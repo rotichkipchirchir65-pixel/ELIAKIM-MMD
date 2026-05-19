@@ -1,11 +1,9 @@
 import fs from "fs";
 import zlib from "zlib";
 import path from "path";
-import { fileURLToPath } from "url";
 import config from "../config.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SESSION_DIR = path.join(__dirname, "..", "bot-session");
+const SESSION_DIR = path.join(process.cwd(), "bot-session");
 
 export function loadSession() {
   let raw = config.SESSION_ID?.trim();

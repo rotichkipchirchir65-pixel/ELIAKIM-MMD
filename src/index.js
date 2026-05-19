@@ -7,7 +7,6 @@ import makeWASocket, {
 import { Boom } from "@hapi/boom";
 import pino from "pino";
 import path from "path";
-import { fileURLToPath } from "url";
 
 import config from "../config.js";
 import { loadSession } from "./session.js";
@@ -15,8 +14,7 @@ import { handleMessage } from "./handler.js";
 import { store as globalStore } from "./store.js";
 import { handleAntiDelete } from "./features/antidelete.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SESSION_DIR = path.join(__dirname, "..", "bot-session");
+const SESSION_DIR = path.join(process.cwd(), "bot-session");
 const logger = pino({ level: "silent" });
 
 // Load session from config.js before connecting
