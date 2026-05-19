@@ -1,0 +1,6 @@
+{
+  "name": "ELIAKIM MD",
+  "description": "A powerful multi-device WhatsApp bot with a web dashboard for management and monitoring.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

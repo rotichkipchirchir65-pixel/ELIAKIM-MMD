@@ -1,0 +1,18 @@
+// ELIAKIM MD CONFIG FILE
+// Only edit this file. Nothing else needs to be touched.
+
+const config = {
+  // Your WhatsApp number — international format, no + or spaces
+  OWNER_NUMBER: "254739320033",
+
+  // Session ID provided by user
+  SESSION_ID: "KnightBot!H4sIAAAAAAAAA5VUy46jRhT9l9ramqbABttSS8E8/MSNH9htR1mUocBlQwFVZWw86l3WUSubSJF6EyX5g5GyyMdkviD9CRH9yMwimXR2l1uXc8899/Ee0JRwPMIl6LwHGSMFErgyRZlh0AHdYxhiBuogQAKBDvD7bitfzUXPu9TMXB9C6djtB+fEzZjtz4oGjaJ8Nu2zpO9fg7s6yI7bmPhfAMyU0QWuhCWbQlZtdsta0hBdpS05OrXaKxPe5KaSsNriVKbX4K5CRIQRGlnZDieYoXiESxcR9jb6ntPj8ITd9mYSaKG1wupkMMtVKxB0PbLGtmH0PCeWNdmO3kZ/J132/vk4DNgSrmVndsvWC+gUl0miFKRHbmS7sLpKn/WX02f6nEQUB4MAU0FE+WbdRyPVSxPDU46H9tLkY7tYRIk1dgyjT4dumobzXWblIXQV6W3ET1eWt5vqymY5hOw272vrcsX9i3EwNhyXi3iXTzWiwHapND4n7rLXWTn8H931CbE36XDEi8KfjM+KnJpykl00B6niEFHGZ/o2l7QGSt6oe3Hs2bCU7bVTM2tdvLiw4ayAmstt1xr3N2cajaYsvmxbxPlEH4kj+xLLS8OqmTtv5S17eWuyKVQmGt55v7kwBAmvEarQ7EoWtaUztm5a86t4relm0E1n0mY3E8pWk06NkXG7Hbm7mnRbble2CLrR9VNFB1wOAtCBd3XAcES4YEiQlFY+Wa0DFBRz7DMsntQFPLLazomdtHZ6M+/t0c3e7ge2eSFCPuaHkQZn1G6smiqbpdegDjKW+phzHPQJFykrHcw5ijAHna+/qQOKz+K5b1U2BdZBSBgXHj1mcYqC16a+PiLfT49UzEvqG5WBGehIn9xYCEIjXsl4pIj5O1JgY4cEB50QxRz/XSBmOHjx1QFLj9VvAxqmX2iAoUcDPYomlWAv+aroAAtEYl4FuCNHaw161s3+yCd6r6dHkW5EOvjE77XPz0IubobnPdzYXVkfLNLytKU0PdRWcjjNuwZbttNSzMaSWaQH6/ofQEAHNJDn18i4MVRud3Cl58pGb7EuTPx2mJ/jptPc5EJJuxm2fOqWoSGrc8kwNr2lalAphvMxHI9gps6F1ITHVS22u72aebqusgW4ID7+PNlsYK6h1KitKFyw8SVcU2PlhvsQedlipCRmSfIUq2V0u/Gp25CKPtwn03w4mOwn2HAWEYcan1/UHeztPZ/PeOa2U1N/nsDkafRJADpAbjY0pa3IkqQoHUX9ir87VR1EWfaOYgHqgKIqGvzx+/d//vbd48P9t48P9788Ptz/9Phw/+Pjw/3PL/avHz/88PHDPaiD+AkYQkmVYQs2ZSjBdrPCrh5e9y9+uXvkaTQrMtVnSPDTGXlJ+p/knmWrxlW6q3+G8XKY/mW2ut6F+Ov2ajYNIsNSHd5rNtWhGwsqjaJpDkPkMG/e1jV12AV3d9/UQRYjEaYsqfYx2aKqSMSF/mk9FiTBXKAkAx2oaW3YajZl5e4v+y9UqlMHAAA=",
+
+  // Bot name shown in messages
+  BOT_NAME: "ELIAKIM MD",
+
+  // Command prefix
+  PREFIX: ".",
+};
+
+export default config;
