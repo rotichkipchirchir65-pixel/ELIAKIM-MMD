@@ -26,7 +26,7 @@ export function getSender(msg, sock) {
 export function isOwner(msg, sock) {
   if (msg.key?.fromMe) return true;
 
-  const senderJid = msg.key?.participant || msg.message?.extendedTextMessage?.contextInfo?.participant || msg.key?.remoteJid || "";
+  const senderJid = getSender(msg, sock);
   const sender = senderJid.replace(/\D/g, "");
   const owner = config.OWNER_NUMBER.replace(/\D/g, "");
 

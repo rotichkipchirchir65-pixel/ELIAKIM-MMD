@@ -24,9 +24,9 @@ export async function handleAntiDelete(sock, deletedKey, msgCache) {
     const time = new Date().toLocaleString("en-KE", { timeZone: "Africa/Nairobi" });
 
     const header =
-      `🗑️ *DELETED MESSAGE CAUGHT*\n` +
+      `👿 *eliakim antiDelete* 👿\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `👤 *From:* +${senderNum}\n` +
+      `👤 *From:* @${senderNum}\n` +
       `💬 *Chat:* ${chatTag}\n` +
       `🕐 *Time:* ${time}\n` +
       `━━━━━━━━━━━━━━━━━━━━`;
@@ -36,7 +36,7 @@ export async function handleAntiDelete(sock, deletedKey, msgCache) {
     // TEXT
     if (msgType === "conversation" || msgType === "extendedTextMessage") {
       const text = original.message.conversation || original.message.extendedTextMessage?.text || "(empty)";
-      await sock.sendMessage(ownerJid, { text: `${header}\n\n💬 *Message:*\n${text}` });
+      await sock.sendMessage(ownerJid, { text: `${header}\n\n💬 *Message:*\n${text}`, mentions: [sender] });
       return;
     }
 
@@ -48,9 +48,9 @@ export async function handleAntiDelete(sock, deletedKey, msgCache) {
         const stream = await downloadContentFromMessage(media, "image");
         const chunks = [];
         for await (const c of stream) chunks.push(c);
-        await sock.sendMessage(ownerJid, { image: Buffer.concat(chunks), caption: `${header}${caption}` });
+        await sock.sendMessage(ownerJid, { image: Buffer.concat(chunks), caption: `${header}${caption}`, mentions: [sender] });
       } catch {
-        await sock.sendMessage(ownerJid, { text: `${header}\n\n🖼️ *Deleted an image*${caption}` });
+        await sock.sendMessage(ownerJid, { text: `${header}\n\n🖼️ *Deleted an image*${caption}`, mentions: [sender] });
       }
       return;
     }
@@ -63,9 +63,9 @@ export async function handleAntiDelete(sock, deletedKey, msgCache) {
         const stream = await downloadContentFromMessage(media, "video");
         const chunks = [];
         for await (const c of stream) chunks.push(c);
-        await sock.sendMessage(ownerJid, { video: Buffer.concat(chunks), caption: `${header}${caption}` });
+        await sock.sendMessage(ownerJid, { video: Buffer.concat(chunks), caption: `${header}${caption}`, mentions: [sender] });
       } catch {
-        await sock.sendMessage(ownerJid, { text: `${header}\n\n🎬 *Deleted a video*${caption}` });
+        await sock.sendMessage(ownerJid, { text: `${header}\n\n🎬 *Deleted a video*${caption}`, mentions: [sender] });
       }
       return;
     }
@@ -78,10 +78,10 @@ export async function handleAntiDelete(sock, deletedKey, msgCache) {
         const stream = await downloadContentFromMessage(media, "audio");
         const chunks = [];
         for await (const c of stream) chunks.push(c);
-        await sock.sendMessage(ownerJid, { text: `${header}\n\n${label} deleted:` });
-        await sock.sendMessage(ownerJid, { audio: Buffer.concat(chunks), mimetype: "audio/mp4", ptt: !!media.ptt });
+        await sock.sendMessage(ownerJid, { text: `${header}\n\n${label} deleted:`, mentions: [sender] });
+        await sock.sendMessage(ownerJid, { audio: Buffer.concat(chunks), mimetype: "audio/mp4", ptt: !!media.ptt }, { quoted: original });
       } catch {
-        await sock.sendMessage(ownerJid, { text: `${header}\n\n${label} deleted (could not retrieve)` });
+        await sock.sendMessage(ownerJid, { text: `${header}\n\n${label} deleted (could not retrieve)`, mentions: [sender] });
       }
       return;
     }
@@ -93,10 +93,10 @@ export async function handleAntiDelete(sock, deletedKey, msgCache) {
         const stream = await downloadContentFromMessage(media, "sticker");
         const chunks = [];
         for await (const c of stream) chunks.push(c);
-        await sock.sendMessage(ownerJid, { text: `${header}\n\n🎭 *Deleted a sticker:*` });
+        await sock.sendMessage(ownerJid, { text: `${header}\n\n🎭 *Deleted a sticker:*`, mentions: [sender] });
         await sock.sendMessage(ownerJid, { sticker: Buffer.concat(chunks) });
       } catch {
-        await sock.sendMessage(ownerJid, { text: `${header}\n\n🎭 *Deleted a sticker* (could not retrieve)` });
+        await sock.sendMessage(ownerJid, { text: `${header}\n\n🎭 *Deleted a sticker* (could not retrieve)`, mentions: [sender] });
       }
       return;
     }
@@ -104,12 +104,12 @@ export async function handleAntiDelete(sock, deletedKey, msgCache) {
     // DOCUMENT
     if (msgType === "documentMessage") {
       const media = original.message.documentMessage;
-      await sock.sendMessage(ownerJid, { text: `${header}\n\n📄 *Deleted a document*\nFile: ${media.fileName || "unknown"}` });
+      await sock.sendMessage(ownerJid, { text: `${header}\n\n📄 *Deleted a document*\nFile: ${media.fileName || "unknown"}`, mentions: [sender] });
       return;
     }
 
     // FALLBACK
-    await sock.sendMessage(ownerJid, { text: `${header}\n\n📦 *Deleted a message* (type: ${msgType})` });
+    await sock.sendMessage(ownerJid, { text: `${header}\n\n📦 *Deleted a message* (type: ${msgType})`, mentions: [sender] });
 
   } catch (err) {
     console.error("[ANTIDELETE]", err.message);
