@@ -3,7 +3,7 @@ import { helpCmd }             from "./help.js";
 import { ownerCmd }            from "./owner.js";
 import { blockCmd, unblockCmd } from "./block.js";
 import { privateCmd }          from "./private.js";
-import { alwaysTypingCmd }     from "./alwaystyping.js";
+import { alwaysTypingCmd, autoStatusCmd } from "./alwaystyping.js";
 import { antilinkCmd }         from "./antilink.js";
 import { antiStatusMentionCmd } from "./antistatusmention.js";
 import { antiViewOnceCmd }     from "./antiviewonce.js";
@@ -20,6 +20,7 @@ const commands = {
   unblock:                unblockCmd,
   private:                privateCmd,
   alwaystyping:           alwaysTypingCmd,
+  autostatus:             autoStatusCmd,
   antilink:               antilinkCmd,
   antilinkgroup:          antilinkCmd,
   antistatusmention:      antiStatusMentionCmd,

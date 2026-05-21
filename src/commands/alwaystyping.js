@@ -34,3 +34,10 @@ export async function antiViewOnceCmd(sock, msg, { jid, args, owner }) {
   botState.antiViewOnce = on;
   await sock.sendMessage(jid, { text: `👁️ Anti-View-Once *${on ? "ON" : "OFF"}*` });
 }
+
+export async function autoStatusCmd(sock, msg, { jid, args, owner }) {
+  if (!owner) return sock.sendMessage(jid, { text: "❌ Owner only." });
+  const on = (args[0] || "").toLowerCase() === "on";
+  botState.autoStatusView = on;
+  await sock.sendMessage(jid, { text: `📲 Auto Status View & React *${on ? "ON" : "OFF"}*` });
+}

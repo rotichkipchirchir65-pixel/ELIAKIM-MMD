@@ -18,6 +18,7 @@ export async function helpCmd(sock, msg, { jid }) {
 ▸ ${P}unblock @user — Unblock user
 ▸ ${P}private on/off — DMs for owner only
 ▸ ${P}alwaystyping on/off — Always appear typing
+▸ ${P}autostatus on/off — Auto view & react to statuses
 ▸ ${P}antilink on/off — Deletes all links globally
 ▸ ${P}antistatusmention on/off — Deletes status forwards
 ▸ ${P}antiviewonce on/off — Auto-save view-once
