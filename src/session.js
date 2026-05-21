@@ -17,6 +17,20 @@ export function loadSession() {
     fs.mkdirSync(SESSION_DIR, { recursive: true });
   }
 
+  const lastSessionFile = path.join(SESSION_DIR, ".last_session_id");
+  const credsPath = path.join(SESSION_DIR, "creds.json");
+
+  // If session folder and creds exist, and session ID is unchanged, skip overwriting
+  if (fs.existsSync(credsPath) && fs.existsSync(lastSessionFile)) {
+    try {
+      const lastSessionId = fs.readFileSync(lastSessionFile, "utf8").trim();
+      if (lastSessionId === raw) {
+        console.log("✅ Using existing authenticated session (matching SESSION_ID).");
+        return;
+      }
+    } catch (_) {}
+  }
+
   try {
     // ── Strip known prefixes (KnightBot!, Baileys-, etc.) ──────────────────
     const prefixMatch = raw.match(/^[A-Za-z]+[!_-]/);
@@ -57,6 +71,7 @@ export function loadSession() {
       }
     }
 
+    fs.writeFileSync(lastSessionFile, raw, "utf8");
     console.log("✅ Session loaded successfully.");
 
   } catch (err) {
