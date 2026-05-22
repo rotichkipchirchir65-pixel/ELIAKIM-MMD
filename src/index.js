@@ -20,17 +20,15 @@ import { handleAntiDelete } from "./features/antidelete.js";
 const SESSION_DIR = path.join(process.cwd(), "bot-session");
 const logger = pino({ level: "silent" });
 
-// Load session from config.js before connecting
-loadSession();
-
-function healSession() {
+// Load session from config.js dynamically before connection in startBot
+async function healSession() {
   try {
     console.log("🧹 Healing session: completely clearing session directory and reloading clean credentials from configuration...");
     if (fs.existsSync(SESSION_DIR)) {
       fs.rmSync(SESSION_DIR, { recursive: true, force: true });
     }
     fs.mkdirSync(SESSION_DIR, { recursive: true });
-    loadSession();
+    await loadSession();
     console.log("✅ Credentials successfully restored from config.js");
   } catch (err) {
     console.error("❌ Error healing session:", err.message);
@@ -43,6 +41,7 @@ let reconnectTimer = null;
 let isReconnecting = false;
 let isInitializing = false;
 let consecutiveConflicts = 0;
+let consecutiveBadSessions = 0;
 
 export async function startBot() {
   if (isInitializing) {
@@ -53,6 +52,7 @@ export async function startBot() {
   isReconnecting = false;
 
   try {
+    await loadSession();
     if (reconnectTimer) {
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
@@ -137,6 +137,7 @@ export async function startBot() {
       if (connection === "open") {
         isReconnecting = false;
         consecutiveConflicts = 0; // reset on successful connection!
+        consecutiveBadSessions = 0; // reset on successful connection!
         const ownerJid = `${config.OWNER_NUMBER}@s.whatsapp.net`;
         console.log("╔══════════════════════════════════════════╗");
         console.log(`║  ✅  ${config.BOT_NAME} is now CONNECTED!  ║`);
@@ -187,11 +188,15 @@ export async function startBot() {
 
         console.log(`[${config.BOT_NAME}] Disconnected (code: ${code}, msg: ${message})`);
         
-        const isBadMAC = fullErrorStr.includes("bad mac") || 
-                         fullErrorStr.includes("key used already") || 
-                         fullErrorStr.includes("decrypt") || 
-                         fullErrorStr.includes("session");
-        const isConflict = fullErrorStr.includes("conflict") || code === 440;
+        const isBadSessionOrMac = fullErrorStr.includes("bad mac") || 
+                                  fullErrorStr.includes("key used already") || 
+                                  fullErrorStr.includes("decrypt") || 
+                                  fullErrorStr.includes("session") ||
+                                  code === DisconnectReason.badSession ||
+                                  code === DisconnectReason.multideviceMismatch;
+        const isConflict = fullErrorStr.includes("conflict") || 
+                           code === 440 || 
+                           code === DisconnectReason.connectionReplaced;
 
         if (loggedOut) {
           console.log("❌ Session expired. Update SESSION_ID in config.js and restart.");
@@ -199,21 +204,38 @@ export async function startBot() {
         } else {
           let delay = 5000;
           
-          if (isBadMAC) {
-            console.log("⚠️ Sync/MAC/Decryption error detected. Automatically healing session and restoring clean credentials...");
-            healSession();
-            delay = 15000;
-          } else if (isConflict) {
+          if (isConflict) {
             consecutiveConflicts++;
             console.log(`⚠️ Stream conflict (code 440) detected (Attempt ${consecutiveConflicts}).`);
-            if (consecutiveConflicts >= 2) {
-              console.log("⚠️ Multiple consecutive stream conflicts detected. Automatically healing session to resolve state corruption...");
-              healSession();
-              delay = 15000;
+            
+            if (consecutiveConflicts === 1) {
+              delay = 45000;
+              console.log("⚠️ First conflict detected. Waiting 45 seconds before reconnecting (leaving session files intact)...");
+            } else if (consecutiveConflicts === 2) {
+              delay = 90000;
+              console.log("⚠️ Second consecutive conflict. Waiting 90 seconds before reconnecting (leaving session files intact)...");
+            } else if (consecutiveConflicts === 3) {
+              delay = 180000;
+              console.log("⚠️ Third consecutive conflict. Waiting 180 seconds before reconnecting (leaving session files intact)...");
             } else {
-              console.log("⚠️ First conflict detected. Waiting 30 seconds before reconnecting (leaving session files intact)...");
-              delay = 30000;
+              delay = 300000;
+              console.log("⚠️ Multiple consecutive conflicts. Waiting 5 minutes before reconnecting (leaving session files intact)...");
             }
+          } else if (isBadSessionOrMac) {
+            consecutiveBadSessions++;
+            console.log(`⚠️ Decryption/Bad MAC/Session error detected (Attempt ${consecutiveBadSessions}/3).`);
+            
+            if (consecutiveBadSessions >= 3) {
+              console.log("⚠️ 3 consecutive bad session/decryption errors. Force healing the session now...");
+              healSession();
+              delay = 20000;
+            } else {
+              console.log("⚠️ Transient decryption/MAC error. Reconnecting in 10s with session files intact to let pre-keys synchronize...");
+              delay = 10000;
+            }
+          } else {
+            consecutiveConflicts = 0;
+            consecutiveBadSessions = 0;
           }
 
           console.log(`🔄 Reconnecting in ${delay/1000} seconds...`);
@@ -223,7 +245,10 @@ export async function startBot() {
     });
 
     // ── Save credentials ───────────────────────────────────────────────────────
-    sock.ev.on("creds.update", saveCreds);
+    sock.ev.on("creds.update", async () => {
+      if (sock !== activeSock) return;
+      await saveCreds();
+    });
 
     // ── Anti-Delete — always on ────────────────────────────────────────────────
     sock.ev.on("messages.delete", async (item) => {
@@ -258,37 +283,11 @@ app.listen(3000, "0.0.0.0", () => {
 
 // ── Process Crash & Error Isolation Safeguards ──────────────────────────────
 process.on("unhandledRejection", (reason) => {
-  const errStr = String(reason?.stack || reason?.message || reason).toLowerCase();
   console.error("[Unhandled Rejection]", reason);
-  if (errStr.includes("bad mac") || errStr.includes("decrypt") || errStr.includes("session")) {
-    console.log("⚠️ Unhandled decryption/MAC error detected. Healing session & triggering clean reconnect...");
-    healSession();
-    if (activeSock) {
-      try {
-        activeSock.ev.removeAllListeners();
-        activeSock.end();
-      } catch (_) {}
-      activeSock = null;
-    }
-    startBot().catch(() => {});
-  }
 });
 
 process.on("uncaughtException", (err) => {
-  const errStr = String(err?.stack || err?.message || err).toLowerCase();
   console.error("[Uncaught Exception]", err);
-  if (errStr.includes("bad mac") || errStr.includes("decrypt") || errStr.includes("session")) {
-    console.log("⚠️ Uncaught decryption/MAC error detected. Healing session & triggering clean reconnect...");
-    healSession();
-    if (activeSock) {
-      try {
-        activeSock.ev.removeAllListeners();
-        activeSock.end();
-      } catch (_) {}
-      activeSock = null;
-    }
-    startBot().catch(() => {});
-  }
 });
 
 // ── Fire up the bot ──────────────────────────────────────────────────────────
